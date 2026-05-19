@@ -3,6 +3,7 @@ package com.neoframe.neoframe_backend.shared.security;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
@@ -13,8 +14,9 @@ import java.util.function.Function;
 @Service
 public class JwtService {
 
-    private static final String SECRET_STRING = "YOUR_SUPER_LONG_AND_SECURE_SECRET_KEY_WITH_MORE_THAN_256_BITS_NEOFRAME_2026";
-    private final SecretKey secretKey = Keys.hmacShaKeyFor(SECRET_STRING.getBytes());
+    @Value("${jwt.secret}")
+    private String secretString;
+    private final SecretKey secretKey = Keys.hmacShaKeyFor(secretString.getBytes());
 
     // Token expiration set to 24 hours
     private static final long EXPIRATION_TIME = 86_400_000;
