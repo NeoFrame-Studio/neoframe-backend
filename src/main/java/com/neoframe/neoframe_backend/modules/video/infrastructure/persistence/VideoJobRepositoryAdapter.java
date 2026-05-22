@@ -3,6 +3,7 @@ package com.neoframe.neoframe_backend.modules.video.infrastructure.persistence;
 import com.neoframe.neoframe_backend.core.domain.VideoJob;
 import com.neoframe.neoframe_backend.core.domain.VideoStatus;
 import com.neoframe.neoframe_backend.core.ports.out.VideoJobRepositoryPort;
+import com.neoframe.neoframe_backend.shared.infrastructure.persistence.entity.VideoJobEntity;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;

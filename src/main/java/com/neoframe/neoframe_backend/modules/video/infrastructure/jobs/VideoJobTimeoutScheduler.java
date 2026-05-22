@@ -1,7 +1,8 @@
 package com.neoframe.neoframe_backend.modules.video.infrastructure.jobs;
 
 import com.neoframe.neoframe_backend.core.domain.VideoStatus;
-import com.neoframe.neoframe_backend.modules.video.infrastructure.persistence.VideoJobEntity;
+// CORREÇÃO AQUI: Mudamos o import para apontar para a entidade correta do shared
+import com.neoframe.neoframe_backend.shared.infrastructure.persistence.entity.VideoJobEntity;
 import com.neoframe.neoframe_backend.modules.video.infrastructure.persistence.VideoJobJpaRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,14 +19,14 @@ public class VideoJobTimeoutScheduler {
     private static final Logger log = LoggerFactory.getLogger(VideoJobTimeoutScheduler.class);
     private final VideoJobJpaRepository jpaRepository;
 
-    // Define the maximum allowed time for a video to be processed (e.g., 30 minutes)
+    // Define o tempo máximo permitido para processar um vídeo (30 minutos)
     private static final int TIMEOUT_MINUTES = 30;
 
     public VideoJobTimeoutScheduler(VideoJobJpaRepository jpaRepository) {
         this.jpaRepository = jpaRepository;
     }
 
-    // Runs automatically every 5 minutes
+    // Roda automaticamente a cada 5 minutos
     @Scheduled(fixedRate = 300000)
     @Transactional
     public void cleanupStuckJobs() {
@@ -33,9 +34,7 @@ public class VideoJobTimeoutScheduler {
 
         LocalDateTime thresholdTime = LocalDateTime.now().minusMinutes(TIMEOUT_MINUTES);
 
-        // Find all jobs that are stuck in PROCESSING state for too long
-        // (You would add a custom query in the JpaRepository for this:
-        // findByStatusAndCreatedAtBefore(VideoStatus.PROCESSING, thresholdTime))
+        // Busca os jobs travados usando o repositório ajustado
         List<VideoJobEntity> stuckJobs = jpaRepository.findStuckJobs(VideoStatus.PROCESSING, thresholdTime);
 
         if (stuckJobs.isEmpty()) {
@@ -47,6 +46,7 @@ public class VideoJobTimeoutScheduler {
             log.warn("Job {} for User {} timed out. Changing status to FAILED to free up user queue slot.",
                     job.getId(), job.getUserId());
 
+            // Aqui funciona direto porque ajustamos o VideoJobEntity para usar o Enum VideoStatus puro!
             job.setStatus(VideoStatus.FAILED);
             jpaRepository.save(job);
         }
