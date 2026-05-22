@@ -37,20 +37,18 @@ public class VideoJobPersistenceAdapter implements VideoJobRepositoryPort {
 
     @Override
     public int countActiveJobsByUserIdAndStatusIn(UUID userId, VideoStatus... statuses) {
-        List<String> statusStrings = Arrays.stream(statuses)
-                .map(Enum::name)
-                .collect(Collectors.toList());
-
-        return (int) repository.countByUserIdAndStatusIn(userId, statusStrings);
+        // Agora passamos a lista de Enums direto, pois o repositório foi ajustado para entender o tipo correto
+        List<VideoStatus> statusList = Arrays.asList(statuses);
+        return (int) repository.countByUserIdAndStatusIn(userId, statusList);
     }
 
     private VideoJob toDomain(VideoJobEntity entity) {
-        // 1. Instancia usando o construtor exato de 5 argumentos do seu Core
+        // CORREÇÃO LINHA 53: Removido o VideoStatus.valueOf() pois entity.getStatus() já retorna o Enum correto
         VideoJob domain = new VideoJob(
                 entity.getId(),
                 entity.getUserId(),
                 entity.getScript(),
-                VideoStatus.valueOf(entity.getStatus()),
+                entity.getStatus(),
                 entity.getCreatedAt()
         );
 
@@ -76,11 +74,12 @@ public class VideoJobPersistenceAdapter implements VideoJobRepositoryPort {
     }
 
     private VideoJobEntity toEntity(VideoJob videoJob) {
+        // CORREÇÃO LINHA 83: Passando o Enum direto (videoJob.getStatus()) em vez de mandar a String (.name())
         return new VideoJobEntity(
                 videoJob.getId(),
                 videoJob.getUserId(),
                 videoJob.getScript(),
-                videoJob.getStatus().name(),
+                videoJob.getStatus(),
                 videoJob.getVideoUrl(),
                 videoJob.getCreatedAt(),
                 videoJob.getCompletedAt(),

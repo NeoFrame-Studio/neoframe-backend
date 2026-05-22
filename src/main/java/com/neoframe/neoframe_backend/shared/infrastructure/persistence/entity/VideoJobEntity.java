@@ -1,5 +1,6 @@
 package com.neoframe.neoframe_backend.shared.infrastructure.persistence.entity;
 
+import com.neoframe.neoframe_backend.core.domain.VideoStatus;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -17,8 +18,10 @@ public class VideoJobEntity {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String script;
 
+    // Mapeia o Enum para ser gravado como texto (VARCHAR) no banco de dados
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private String status;
+    private VideoStatus status;
 
     @Column(name = "video_url")
     private String videoUrl;
@@ -41,8 +44,8 @@ public class VideoJobEntity {
     // Construtor padrão para o JPA
     public VideoJobEntity() {}
 
-    // Construtor completo para o Adaptador
-    public VideoJobEntity(UUID id, UUID userId, String script, String status, String videoUrl,
+    // Construtor completo para o Adaptador (Atualizado com VideoStatus)
+    public VideoJobEntity(UUID id, UUID userId, String script, VideoStatus status, String videoUrl,
                           LocalDateTime createdAt, LocalDateTime completedAt, String backgroundMusicUrl,
                           String introVideoUrl, String topicTransitionUrl) {
         this.id = id;
@@ -60,22 +63,32 @@ public class VideoJobEntity {
     // Getters e Setters
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
+
     public UUID getUserId() { return userId; }
     public void setUserId(UUID userId) { this.userId = userId; }
+
     public String getScript() { return script; }
     public void setScript(String script) { this.script = script; }
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+
+    // Getters e Setters atualizados para VideoStatus
+    public VideoStatus getStatus() { return status; }
+    public void setStatus(VideoStatus status) { this.status = status; }
+
     public String getVideoUrl() { return videoUrl; }
     public void setVideoUrl(String videoUrl) { this.videoUrl = videoUrl; }
+
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
     public LocalDateTime getCompletedAt() { return completedAt; }
     public void setCompletedAt(LocalDateTime completedAt) { this.completedAt = completedAt; }
+
     public String getBackgroundMusicUrl() { return backgroundMusicUrl; }
     public void setBackgroundMusicUrl(String backgroundMusicUrl) { this.backgroundMusicUrl = backgroundMusicUrl; }
+
     public String getIntroVideoUrl() { return introVideoUrl; }
     public void setIntroVideoUrl(String introVideoUrl) { this.introVideoUrl = introVideoUrl; }
+
     public String getTopicTransitionUrl() { return topicTransitionUrl; }
     public void setTopicTransitionUrl(String topicTransitionUrl) { this.topicTransitionUrl = topicTransitionUrl; }
 }
