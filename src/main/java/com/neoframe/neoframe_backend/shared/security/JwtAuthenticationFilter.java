@@ -9,7 +9,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-
 import java.io.IOException;
 import java.util.Collections;
 
@@ -23,36 +22,39 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
 
-        final String authHeader = request.getHeader("Authorization");
-        final String jwt;
-        final String userId;
+        // 1. Pega o cabeçalho de autorização da requisição HTTP
+        String authHeader = request.getHeader("Authorization");
 
-        // Skip filter if no Bearer token header is found
+        // Se não tiver token ou não começar com "Bearer ", passa para o próximo filtro (Spring vai barrar se a rota for protegida)
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        jwt = authHeader.substring(7);
+        // 2. Extrai apenas o código do token (removendo a palavra "Bearer ")
+        String token = authHeader.substring(7);
 
-        if (jwtService.isTokenValid(jwt)) {
-            userId = jwtService.extractUserId(jwt);
+        // 3. Valida a assinatura e expiração do token
+        if (jwtService.isTokenValid(token)) {
+            String userId = jwtService.extractUserId(token);
 
-            if (SecurityContextHolder.getContext().getAuthentication() == null) {
-                // Inject the authenticated User UUID into the Spring Security Context
-                var authToken = new UsernamePasswordAuthenticationToken(
-                        userId, null, Collections.emptyList()
-                );
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+            // Cria o objeto de autenticação injetando o ID do usuário como o "Principal" do Spring
+            UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                    userId,
+                    null,
+                    Collections.emptyList() // Sem roles/permissões complexas por enquanto (SaaS simples)
+            );
 
-                SecurityContextHolder.getContext().setAuthentication(authToken);
-            }
+            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+            // Grava a autenticação no contexto atual da requisição
+            SecurityContextHolder.getContext().setAuthentication(authentication);
         }
 
+        // Segue o fluxo normal da requisição
         filterChain.doFilter(request, response);
     }
 }

@@ -9,44 +9,53 @@ import org.springframework.stereotype.Service;
 import javax.crypto.SecretKey;
 import java.util.Date;
 import java.util.UUID;
-import java.util.function.Function;
 
 @Service
 public class JwtService {
 
-    @Value("${jwt.secret}")
-    private String secretString;
-    private final SecretKey secretKey = Keys.hmacShaKeyFor(secretString.getBytes());
+    @Value("${app.jwt.secret}")
+    private String secretKey;
 
-    // Token expiration set to 24 hours
-    private static final long EXPIRATION_TIME = 86_400_000;
+    @Value("${app.jwt.expiration-ms}")
+    private long jwtExpirationMs;
 
-    public String extractUserId(String token) {
-        return extractClaim(token, Claims::getSubject);
+    // Na versão 0.12.5, usamos SecretKey do pacote javax.crypto
+    private SecretKey getSigningKey() {
+        return Keys.hmacShaKeyFor(secretKey.getBytes());
     }
 
-    public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
-        final Claims claims = Jwts.parser()
-                .verifyWith(secretKey)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
-        return claimsResolver.apply(claims);
-    }
+    // Gera o token atualizado para os métodos da v0.12.5
+    public String generateToken(UUID userId, String email) {
+        Date now = new Date();
+        Date expiryDate = new Date(now.getTime() + jwtExpirationMs);
 
-    public String generateToken(UUID userId) {
         return Jwts.builder()
-                .subject(userId.toString())
-                .issuedAt(new Date(System.currentTimeMillis()))
-                .expiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
-                .signWith(secretKey)
+                .subject(userId.toString()) // Mudou de setSubject para subject
+                .claim("email", email)
+                .issuedAt(now)              // Mudou de setIssuedAt para issuedAt
+                .expiration(expiryDate)     // Mudou de setExpiration para expiration
+                .signWith(getSigningKey())  // O algoritmo HS256 agora é detectado automaticamente pela chave
                 .compact();
     }
 
+    // Extrai o ID do usuário usando o novo parser() e verifyWith()
+    public String extractUserId(String token) {
+        Claims claims = Jwts.parser()
+                .verifyWith(getSigningKey()) // Mudou de setSigningKey para verifyWith
+                .build()
+                .parseSignedClaims(token)    // Mudou de parseClaimsJws para parseSignedClaims
+                .getPayload();               // Mudou de getBody para getPayload
+        return claims.getSubject();
+    }
+
+    // Valida o token no padrão novo
     public boolean isTokenValid(String token) {
         try {
-            Date expiration = extractClaim(token, Claims::getExpiration);
-            return expiration.after(new Date());
+            Jwts.parser()
+                    .verifyWith(getSigningKey())
+                    .build()
+                    .parseSignedClaims(token);
+            return true;
         } catch (Exception e) {
             return false;
         }

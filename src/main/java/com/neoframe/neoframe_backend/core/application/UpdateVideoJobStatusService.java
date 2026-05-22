@@ -8,7 +8,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Service
@@ -23,29 +22,29 @@ public class UpdateVideoJobStatusService implements UpdateVideoJobStatusUseCase 
 
     @Override
     public void execute(UUID jobId, String status, String videoUrl) {
-        // Busca o Job no banco de dados
+        // 1. Busca o Job no banco de dados
         VideoJob job = videoJobRepository.findById(jobId)
                 .orElseThrow(() -> new IllegalArgumentException("Video job not found with ID: " + jobId));
 
         log.info("Updating status for job [{}]. Old: {} -> New: {}", jobId, job.getStatus(), status);
 
+        // 2. Converte a string do Python para Enum
+        VideoStatus newStatus;
         try {
-            // Converte a string recebida do Python para o Enum do Java (PENDING, PROCESSING, COMPLETED, FAILED)
-            VideoStatus newStatus = VideoStatus.valueOf(status.toUpperCase());
-            job.setStatus(newStatus);
+            newStatus = VideoStatus.valueOf(status.toUpperCase());
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Invalid status provided by worker: " + status);
         }
 
-        // Se o processamento deu certo, vincula o link final do Supabase
-        if (job.getStatus() == VideoStatus.COMPLETED) {
-            job.setVideoUrl(videoUrl);
+        // 3. Usa os métodos de comportamento do seu Domínio (Rich Domain)
+        switch (newStatus) {
+            case PROCESSING -> job.startProcessing();
+            case COMPLETED -> job.complete(videoUrl); // O domínio já salva a URL e a data de conclusão lá dentro!
+            case FAILED -> job.fail();
+            case PENDING -> log.info("Job [{}] is already pending.", jobId);
         }
 
-        // Grava o carimbo de data/hora do término
-        job.setCompletedAt(LocalDateTime.now());
-
-        // Salva as alterações através do adaptador do banco
+        // 4. Salva as alterações
         videoJobRepository.save(job);
 
         log.info("Job [{}] successfully updated to {} status.", jobId, job.getStatus());
