@@ -7,11 +7,11 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/storage")
-public class StorageController {
+public class SharedStorageController {
 
     private final StorageService storageService;
 
-    public StorageController(StorageService storageService) {
+    public SharedStorageController(StorageService storageService) {
         this.storageService = storageService;
     }
 

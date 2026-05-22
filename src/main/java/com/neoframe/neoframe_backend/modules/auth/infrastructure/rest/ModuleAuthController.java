@@ -11,15 +11,15 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/auth")
-public class AuthController {
+public class ModuleAuthController {
 
     private final RegisterUserUseCase registerUserUseCase;
     private final LoginUserUseCase loginUserUseCase;
     private final LoginWithGoogleUseCase loginWithGoogleUseCase;
 
-    public AuthController(RegisterUserUseCase registerUserUseCase,
-                          LoginUserUseCase loginUserUseCase,
-                          LoginWithGoogleUseCase loginWithGoogleUseCase) {
+    public ModuleAuthController(RegisterUserUseCase registerUserUseCase,
+                                LoginUserUseCase loginUserUseCase,
+                                LoginWithGoogleUseCase loginWithGoogleUseCase) {
         this.registerUserUseCase = registerUserUseCase;
         this.loginUserUseCase = loginUserUseCase;
         this.loginWithGoogleUseCase = loginWithGoogleUseCase;

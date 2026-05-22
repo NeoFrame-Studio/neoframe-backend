@@ -11,11 +11,11 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
-public class AuthController {
+public class SharedAuthController {
 
     private final AuthUseCase authUseCase;
 
-    public AuthController(AuthUseCase authUseCase) {
+    public SharedAuthController(AuthUseCase authUseCase) {
         this.authUseCase = authUseCase;
     }
 
