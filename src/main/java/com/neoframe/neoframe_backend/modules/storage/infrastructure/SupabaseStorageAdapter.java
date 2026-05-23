@@ -19,7 +19,7 @@ public class SupabaseStorageAdapter implements StoragePort {
     @Value("${supabase.url}")
     private String supabaseUrl;
 
-    @Value("${supabase.bucket.name}")
+    @Value("${supabase.bucket}")
     private String bucketName;
 
     @Override
