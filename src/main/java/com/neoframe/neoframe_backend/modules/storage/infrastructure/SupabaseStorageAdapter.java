@@ -19,9 +19,6 @@ public class SupabaseStorageAdapter implements StoragePort {
     @Value("${supabase.url}")
     private String supabaseUrl;
 
-    @Value("${supabase.service-role-key}")
-    private String supabaseServiceKey;
-
     @Value("${supabase.bucket.name}")
     private String bucketName;
 
