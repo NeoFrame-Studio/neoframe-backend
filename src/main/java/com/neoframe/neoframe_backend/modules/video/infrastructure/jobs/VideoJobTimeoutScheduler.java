@@ -1,8 +1,8 @@
 package com.neoframe.neoframe_backend.modules.video.infrastructure.jobs;
 
-import com.neoframe.neoframe_backend.core.domain.VideoStatus;
+import com.neoframe.neoframe_backend.modules.video.core.domain.VideoStatus;
 // CORREÇÃO AQUI: Mudamos o import para apontar para a entidade correta do shared
-import com.neoframe.neoframe_backend.shared.infrastructure.persistence.entity.VideoJobEntity;
+import com.neoframe.neoframe_backend.modules.video.infrastructure.persistence.VideoJobEntity;
 import com.neoframe.neoframe_backend.modules.video.infrastructure.persistence.VideoJobJpaRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

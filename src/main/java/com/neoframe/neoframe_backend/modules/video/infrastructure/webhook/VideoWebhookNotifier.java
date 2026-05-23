@@ -1,6 +1,6 @@
 package com.neoframe.neoframe_backend.modules.video.infrastructure.webhook;
 
-import com.neoframe.neoframe_backend.core.domain.events.VideoJobCreatedEvent;
+import com.neoframe.neoframe_backend.modules.video.core.events.VideoJobCreatedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
