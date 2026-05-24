@@ -23,9 +23,13 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
 
-    // Puxa do application.properties as URLs permitidas (Vite local, domínio final no Railway, etc.)
-    @Value("${app.cors.allowed-origins:http://localhost:5173}")
-    private String allowedOrigins;
+    // Busca a URL do frontend no Railway. Se não achar, usa o localhost do Vite.
+    @Value("${FRONTEND_API_URL:http://localhost:5173}")
+    private String frontendUrl;
+
+    // Busca a URL do Python no Railway. Se não achar, usa um localhost padrão.
+    @Value("${CORE_PYTHON_API_URL:http://localhost:8000}")
+    private String pythonUrl;
 
     public SecurityConfig(JwtAuthenticationFilter jwtAuthFilter) {
         this.jwtAuthFilter = jwtAuthFilter;
@@ -34,28 +38,14 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // 1. Aplica as regras de CORS para permitir conversas com o Frontend React
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-
-                // 2. Desativa CSRF porque a API é Stateless e usa tokens JWT salvos no LocalStorage
                 .csrf(csrf -> csrf.disable())
-
-                // 3. Define que nossa API não guardará estado de sessão no servidor
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
-                // 4. Mapeamento cirúrgico de acessos públicos e privados
                 .authorizeHttpRequests(auth -> auth
-                        // Libera endpoints de autenticação (Cadastro, Login e Google OAuth2)
                         .requestMatchers("/api/v1/auth/**").permitAll()
-
-                        // Libera o Callback do Python (a segurança real é validada via token X-Internal-Key direto no Controller)
                         .requestMatchers("/api/v1/videos/internal/**").permitAll()
-
-                        // Qualquer outra rota do ecossistema NeoFrame exige o token JWT válido
                         .anyRequest().authenticated()
                 )
-
-                // 5. Injeta o filtro customizado de extração do JWT antes do validador padrão do Spring
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -65,11 +55,13 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Converte a string do properties separada por vírgulas em uma lista de origens reais para o CORS
-        configuration.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
+        // Trava o CORS exclusivamente para o seu Front e o seu Python
+        configuration.setAllowedOrigins(Arrays.asList(frontendUrl, pythonUrl));
+
+        // Limita os métodos HTTP permitidos
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
 
-        // Adicionado o 'X-Internal-Key' para permitir que o script do Python faça requisições cross-origin se necessário
+        // Permite os cabeçalhos essenciais, incluindo a chave do Python e o JWT
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Internal-Key"));
         configuration.setExposedHeaders(Collections.singletonList("Authorization"));
         configuration.setAllowCredentials(true);
@@ -81,7 +73,6 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        // Define o BCrypt robusto para fazer o hash seguro das senhas antes de salvar no banco
         return new BCryptPasswordEncoder();
     }
 }
