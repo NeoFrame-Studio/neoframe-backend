@@ -65,7 +65,7 @@ public class AuthService implements AuthUseCase {
     @Override
     public void resetPassword(String token, String newRawPassword) {
         // O JwtTokenPort deve estourar exceção se o token for inválido ou estiver expirado
-        String email = jwtTokenPort.validateTokenAndGetEmail(token);
+        String email = jwtTokenPort.validateTokenAndGetUserId(token);
 
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado para este token."));
