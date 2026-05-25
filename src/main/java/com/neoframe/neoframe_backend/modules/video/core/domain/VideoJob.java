@@ -14,20 +14,42 @@ public class VideoJob {
     private LocalDateTime createdAt;
     private LocalDateTime completedAt;
 
-    // Optional fields for manual file uploads (Starter Plan requirements)
     private String backgroundMusicUrl;
     private String introVideoUrl;
     private String topicTransitionUrl;
 
-    public VideoJob(UUID id, UUID userId, String script, VideoStatus status, LocalDateTime createdAt) {
+    // 1. CONSTRUTOR PARA O SERVICE (Cria novos Jobs e Valida Regras)
+    public VideoJob(UUID id, UUID userId, String script, VideoStatus status, LocalDateTime createdAt,
+                    String backgroundMusicUrl, String introVideoUrl, String topicTransitionUrl, Plan userPlan) {
         this.id = id;
         this.userId = userId;
         this.script = script;
         this.status = status;
         this.createdAt = createdAt;
+        this.backgroundMusicUrl = backgroundMusicUrl;
+        this.introVideoUrl = introVideoUrl;
+        this.topicTransitionUrl = topicTransitionUrl;
+
+        // Valida no momento do nascimento!
+        validateRequirements(userPlan);
     }
 
-    // Business behavior to transition status safely
+    // 2. CONSTRUTOR PARA O ADAPTER/BANCO DE DADOS (Hidrata o objeto sem revalidar regras)
+    public VideoJob(UUID id, UUID userId, String script, VideoStatus status, String videoUrl,
+                    LocalDateTime createdAt, LocalDateTime completedAt,
+                    String backgroundMusicUrl, String introVideoUrl, String topicTransitionUrl) {
+        this.id = id;
+        this.userId = userId;
+        this.script = script;
+        this.status = status;
+        this.videoUrl = videoUrl;
+        this.createdAt = createdAt;
+        this.completedAt = completedAt;
+        this.backgroundMusicUrl = backgroundMusicUrl;
+        this.introVideoUrl = introVideoUrl;
+        this.topicTransitionUrl = topicTransitionUrl;
+    }
+
     public void startProcessing() {
         if (this.status != VideoStatus.PENDING) {
             throw new IllegalStateException("Job can only start processing if it is PENDING");
@@ -45,7 +67,7 @@ public class VideoJob {
         this.status = VideoStatus.FAILED;
     }
 
-    // Getters and Setters for optional assets
+    // Getters
     public UUID getId() { return id; }
     public UUID getUserId() { return userId; }
     public String getScript() { return script; }
@@ -53,22 +75,18 @@ public class VideoJob {
     public String getVideoUrl() { return videoUrl; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getCompletedAt() { return completedAt; }
-
     public String getBackgroundMusicUrl() { return backgroundMusicUrl; }
-    public void setBackgroundMusicUrl(String backgroundMusicUrl) { this.backgroundMusicUrl = backgroundMusicUrl; }
-
     public String getIntroVideoUrl() { return introVideoUrl; }
-    public void setIntroVideoUrl(String introVideoUrl) { this.introVideoUrl = introVideoUrl; }
-
     public String getTopicTransitionUrl() { return topicTransitionUrl; }
-    public void setTopicTransitionUrl(String topicTransitionUrl) { this.topicTransitionUrl = topicTransitionUrl; }
+
+    // Os setters dos arquivos opcionais foram removidos pois agora passamos via construtor!
 
     public void validateRequirements(Plan userPlan) {
         if (this.script == null || this.script.trim().isEmpty()) {
             throw new IllegalArgumentException("Script cannot be empty.");
         }
 
-        // Enforce Starter plan constraints
+        // Regra específica: Plano Starter exige arquivos manuais
         if (userPlan == Plan.STARTER) {
             boolean isMissingManualAssets =
                     this.backgroundMusicUrl == null || this.backgroundMusicUrl.trim().isEmpty() ||

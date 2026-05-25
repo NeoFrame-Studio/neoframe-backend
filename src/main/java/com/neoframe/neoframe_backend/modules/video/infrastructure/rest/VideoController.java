@@ -42,20 +42,18 @@ public class VideoController {
             @RequestBody CreateVideoJobRequest request) {
 
         UUID userId = UUID.fromString(authenticatedUserId);
-        log.info("User [{}] requested video generation.", userId);
+        log.info("User [{}] requested video generation with clean JSON.", userId);
 
-        // Executa o caso de uso injetando os parâmetros enviados pelo Frontend
+        // O Spring já resolveu o JSON, é só acessar os métodos do record
         UUID jobId = generateVideoUseCase.execute(
                 userId,
-                request.script(),
-                request.backgroundMusicUrl(),
-                request.introVideoUrl(),
-                request.topicTransitionUrl()
+                request.caminhos().roteiro(),
+                request.caminhos().musica(),
+                request.caminhos().intro(),
+                request.caminhos().transicao()
         );
 
-        log.info("Video job [{}] successfully enqueued for user [{}].", jobId, userId);
-
-        // Retorna o HTTP 202 Accepted, ideal para processamentos assíncronos/filas
+        log.info("Video job [{}] successfully enqueued.", jobId);
         return ResponseEntity.accepted().body(new VideoJobResponse(jobId, "Job successfully added to queue."));
     }
 

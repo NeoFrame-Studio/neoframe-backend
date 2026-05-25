@@ -35,25 +35,24 @@ public class VideoWebhookNotifier {
         this.restTemplate = new RestTemplate(factory);
     }
 
-    @Async // Garante que essa chamada roda em segundo plano e não trava a resposta do React
+    @Async
     @EventListener
     public void onVideoJobCreated(VideoJobCreatedEvent event) {
-        log.info("Sending Webhook notification to Python worker for job [{}] at URL: {}", event.jobId(), pythonWorkerUrl);
+        log.info("Sending Webhook notification to Python worker for job [{}]", event.jobId());
 
         try {
+            // 1. Cria os headers explicitamente
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
+            // 2. Envelopa o evento com os headers
             HttpEntity<VideoJobCreatedEvent> requestEntity = new HttpEntity<>(event, headers);
 
-            // Substitua a chamada antiga por esta:
-            // Faz o disparo HTTP POST enviando o evento (contém o jobId)
+            // 3. Usa o postForObject passando a requestEntity
             restTemplate.postForObject(pythonWorkerUrl, requestEntity, Void.class);
 
             log.info("Python worker successfully notified for job [{}].", event.jobId());
         } catch (Exception e) {
-            // Se der timeout ou o Hugging Face estiver fora do ar, o erro é capturado aqui
-            // Isso evita que a thread principal do Java quebre ou afete a experiência do usuário
             log.error("Failed to notify Python worker for job [{}]. Reason: {}", event.jobId(), e.getMessage());
         }
     }

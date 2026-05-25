@@ -4,6 +4,7 @@ package com.neoframe.neoframe_backend.modules.video.core.application;
 import com.neoframe.neoframe_backend.modules.auth.core.domain.User;
 import com.neoframe.neoframe_backend.modules.video.core.domain.VideoJob;
 import com.neoframe.neoframe_backend.modules.video.core.domain.VideoStatus;
+import com.neoframe.neoframe_backend.modules.video.core.events.PathsPayload;
 import com.neoframe.neoframe_backend.modules.video.core.events.VideoJobCreatedEvent;
 import com.neoframe.neoframe_backend.modules.video.core.ports.in.GenerateVideoUseCase;
 import com.neoframe.neoframe_backend.modules.auth.core.ports.out.UserRepositoryPort;
@@ -59,11 +60,17 @@ public class GenerateVideoService implements GenerateVideoUseCase {
             throw new IllegalStateException("You have reached the maximum number of concurrent video generations for your plan.");
         }
 
-        // Cria e popula o novo Job de vídeo
-        VideoJob newJob = new VideoJob(UUID.randomUUID(), userId, script, VideoStatus.PENDING, LocalDateTime.now());
-        newJob.setBackgroundMusicUrl(backgroundMusicUrl);
-        newJob.setIntroVideoUrl(introVideoUrl);
-        newJob.setTopicTransitionUrl(topicTransitionUrl);
+        VideoJob newJob = new VideoJob(
+                UUID.randomUUID(),
+                userId,
+                script,
+                VideoStatus.PENDING,
+                LocalDateTime.now(),
+                backgroundMusicUrl,
+                introVideoUrl,
+                topicTransitionUrl,
+                user.getPlan() // Passa o plano do usuário para validar
+        );
 
         // Salva as alterações no banco através do adaptador
         VideoJob savedJob = videoJobRepository.save(newJob);
@@ -72,8 +79,13 @@ public class GenerateVideoService implements GenerateVideoUseCase {
         // Exemplo de como deve ficar o disparo no seu Service:
         eventPublisher.publishEvent(new VideoJobCreatedEvent(
                 savedJob.getId(),
-                savedJob.getScript(), // Ou o campo onde você salvou o inputData
-                savedJob.getStatus().name()
+                savedJob.getStatus().name(),
+                new PathsPayload(
+                        savedJob.getScript(),
+                        savedJob.getIntroVideoUrl(),
+                        savedJob.getTopicTransitionUrl(),
+                        savedJob.getBackgroundMusicUrl()
+                )
         ));
         return savedJob.getId();
     }

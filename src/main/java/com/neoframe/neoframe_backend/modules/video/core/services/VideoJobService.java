@@ -29,19 +29,18 @@ public class VideoJobService implements VideoJobUseCase {
             throw new IllegalArgumentException("Você atingiu o limite de vídeos processando simultaneamente para o seu plano.");
         }
 
+        // Instancia o objeto já passando todos os campos e o plano para validação
         VideoJob newJob = new VideoJob(
-                UUID.randomUUID(),     // id do job
-                user.getId(),          // id do usuário
-                scriptUrl,             // script base
-                VideoStatus.PENDING,   // status inicial
-                LocalDateTime.now()    // data de criação
+                UUID.randomUUID(),
+                user.getId(),
+                scriptUrl,
+                VideoStatus.PENDING,
+                LocalDateTime.now(),
+                bgMusicUrl,
+                introUrl,
+                transitionUrl,
+                user.getPlan() // Injeta o plano para o Job se auto-validar
         );
-
-        newJob.setBackgroundMusicUrl(bgMusicUrl);
-        newJob.setIntroVideoUrl(introUrl);
-        newJob.setTopicTransitionUrl(transitionUrl);
-
-        newJob.validateRequirements(user.getPlan());
 
         user.incrementProcessingCount();
         userRepository.save(user);
