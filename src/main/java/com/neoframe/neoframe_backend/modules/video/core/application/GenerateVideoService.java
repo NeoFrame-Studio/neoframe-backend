@@ -69,8 +69,12 @@ public class GenerateVideoService implements GenerateVideoUseCase {
         VideoJob savedJob = videoJobRepository.save(newJob);
 
         // Dispara o evento assíncrono para o ecossistema (avisar o webhook do Python)
-        eventPublisher.publishEvent(new VideoJobCreatedEvent(savedJob.getId()));
-
+        // Exemplo de como deve ficar o disparo no seu Service:
+        eventPublisher.publishEvent(new VideoJobCreatedEvent(
+                savedJob.getId(),
+                savedJob.getScript(), // Ou o campo onde você salvou o inputData
+                savedJob.getStatus().name()
+        ));
         return savedJob.getId();
     }
 }

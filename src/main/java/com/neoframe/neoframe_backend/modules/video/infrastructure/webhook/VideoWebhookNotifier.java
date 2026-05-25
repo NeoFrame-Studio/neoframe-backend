@@ -5,6 +5,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
@@ -38,8 +41,15 @@ public class VideoWebhookNotifier {
         log.info("Sending Webhook notification to Python worker for job [{}] at URL: {}", event.jobId(), pythonWorkerUrl);
 
         try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            HttpEntity<VideoJobCreatedEvent> requestEntity = new HttpEntity<>(event, headers);
+
+            // Substitua a chamada antiga por esta:
             // Faz o disparo HTTP POST enviando o evento (contém o jobId)
-            restTemplate.postForObject(pythonWorkerUrl, event, Void.class);
+            restTemplate.postForObject(pythonWorkerUrl, requestEntity, Void.class);
+
             log.info("Python worker successfully notified for job [{}].", event.jobId());
         } catch (Exception e) {
             // Se der timeout ou o Hugging Face estiver fora do ar, o erro é capturado aqui
