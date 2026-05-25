@@ -2,8 +2,8 @@ package com.neoframe.neoframe_backend.modules.auth.core.application;
 
 import com.neoframe.neoframe_backend.modules.auth.core.domain.User;
 import com.neoframe.neoframe_backend.modules.auth.core.ports.in.LoginUserUseCase;
+import com.neoframe.neoframe_backend.modules.auth.core.ports.out.JwtTokenPort;
 import com.neoframe.neoframe_backend.modules.auth.core.ports.out.UserRepositoryPort;
-import com.neoframe.neoframe_backend.shared.security.JwtService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -16,12 +16,12 @@ public class LoginUserService implements LoginUserUseCase {
 
     private final UserRepositoryPort userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService;
+    private final JwtTokenPort jwtTokenPort; // Substituiu o JwtService
 
-    public LoginUserService(UserRepositoryPort userRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
+    public LoginUserService(UserRepositoryPort userRepository, PasswordEncoder passwordEncoder, JwtTokenPort jwtTokenPort) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
-        this.jwtService = jwtService;
+        this.jwtTokenPort = jwtTokenPort;
     }
 
     @Override
@@ -41,8 +41,8 @@ public class LoginUserService implements LoginUserUseCase {
             throw new IllegalArgumentException("E-mail ou senha incorretos.");
         }
 
-        // 3. Credenciais válidas: Gera e retorna o Token JWT do NeoFrame
-        String token = jwtService.generateToken(user.getId(), user.getEmail());
+        // 3. Credenciais válidas: Gera e retorna o Token JWT do NeoFrame usando a Porta
+        String token = jwtTokenPort.generateAuthToken(user); // Código muito mais limpo!
         log.info("User [{}] successfully authenticated. JWT token issued.", user.getId());
 
         return token;

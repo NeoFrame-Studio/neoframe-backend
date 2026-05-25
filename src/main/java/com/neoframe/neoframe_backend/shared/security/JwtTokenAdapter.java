@@ -52,7 +52,7 @@ public class JwtTokenAdapter implements JwtTokenPort {
     }
 
     @Override
-    public String validateTokenAndGetEmail(String token) {
+    public String validateTokenAndGetUserId(String token) {
         try {
             Algorithm algorithm = Algorithm.HMAC256(secretKey);
             JWTVerifier verifier = JWT.require(algorithm)
@@ -60,7 +60,10 @@ public class JwtTokenAdapter implements JwtTokenPort {
                     .build();
 
             DecodedJWT decodedJWT = verifier.verify(token);
-            return decodedJWT.getSubject(); // Retorna o e-mail de dentro do token
+
+            // Pega o ID que você guardou no método generateAuthToken()
+            return decodedJWT.getClaim("userId").asString();
+
         } catch (JWTVerificationException exception) {
             throw new IllegalArgumentException("Token inválido ou expirado.");
         }

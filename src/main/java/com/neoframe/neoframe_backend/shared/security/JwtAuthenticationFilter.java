@@ -44,7 +44,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     // 3. Valida o token e extrai o ID/Subject do usuário através da porta da Arquitetura Hexagonal
                     // Nota: Se o seu método na JwtTokenPort retornar o e-mail, garanta que o token guarde o ID
                     // ou altere o nome da variável abaixo. O importante é passar o ID para bater com seus Controllers.
-                    String userId = jwtTokenPort.validateTokenAndGetEmail(token);
+                    String userId = jwtTokenPort.validateTokenAndGetUserId(token);
 
                     // 4. Cria a autenticação injetando a String do ID diretamente como o "Principal"
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(

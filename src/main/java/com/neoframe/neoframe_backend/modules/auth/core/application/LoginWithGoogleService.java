@@ -7,8 +7,8 @@ import com.google.api.client.json.gson.GsonFactory;
 import com.neoframe.neoframe_backend.modules.auth.core.domain.Plan;
 import com.neoframe.neoframe_backend.modules.auth.core.domain.User;
 import com.neoframe.neoframe_backend.modules.auth.core.ports.in.LoginWithGoogleUseCase;
+import com.neoframe.neoframe_backend.modules.auth.core.ports.out.JwtTokenPort;
 import com.neoframe.neoframe_backend.modules.auth.core.ports.out.UserRepositoryPort;
-import com.neoframe.neoframe_backend.shared.security.JwtService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,16 +25,16 @@ public class LoginWithGoogleService implements LoginWithGoogleUseCase {
     private static final Logger log = LoggerFactory.getLogger(LoginWithGoogleService.class);
 
     private final UserRepositoryPort userRepository;
-    private final JwtService jwtService;
+    private final JwtTokenPort jwtTokenPort; // Substituiu o JwtService
     private final PasswordEncoder passwordEncoder;
     private final String googleClientId;
 
     public LoginWithGoogleService(UserRepositoryPort userRepository,
-                                  JwtService jwtService,
+                                  JwtTokenPort jwtTokenPort,
                                   PasswordEncoder passwordEncoder,
                                   @Value("${app.google.client-id}") String googleClientId) {
         this.userRepository = userRepository;
-        this.jwtService = jwtService;
+        this.jwtTokenPort = jwtTokenPort;
         this.passwordEncoder = passwordEncoder;
         this.googleClientId = googleClientId;
     }
@@ -44,7 +44,6 @@ public class LoginWithGoogleService implements LoginWithGoogleUseCase {
         log.info("Processing Google login token validation.");
 
         try {
-            // Configura o verificador oficial do Google usando o Client ID do seu SaaS
             GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(new NetHttpTransport(), new GsonFactory())
                     .setAudience(Collections.singletonList(googleClientId))
                     .build();
@@ -59,22 +58,21 @@ public class LoginWithGoogleService implements LoginWithGoogleUseCase {
             String email = payload.getEmail();
             log.info("Google identity verified successfully for email: {}", email);
 
-            // Busca o usuário ou cria uma conta nova na hora (Cadastro sem fricção)
             User user = userRepository.findByEmail(email)
                     .orElseGet(() -> {
                         log.info("First time login via Google for user '{}'. Auto-creating account.", email);
                         User newUser = new User(
                                 UUID.randomUUID(),
                                 email,
-                                passwordEncoder.encode(UUID.randomUUID().toString()), // Senha placeholder segura
+                                passwordEncoder.encode(UUID.randomUUID().toString()),
                                 Plan.STARTER,
                                 LocalDateTime.now()
                         );
                         return userRepository.save(newUser);
                     });
 
-            // Devolve o JWT oficial do NeoFrame para o React usar nas próximas requisições
-            return jwtService.generateToken(user.getId(), user.getEmail());
+            // Devolve o JWT oficial do NeoFrame usando a Porta
+            return jwtTokenPort.generateAuthToken(user);
 
         } catch (IllegalArgumentException e) {
             throw e;
