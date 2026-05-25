@@ -4,6 +4,7 @@ import com.neoframe.neoframe_backend.modules.auth.core.ports.in.LoginUserUseCase
 import com.neoframe.neoframe_backend.modules.auth.core.ports.in.LoginWithGoogleUseCase;
 import com.neoframe.neoframe_backend.modules.auth.core.ports.in.RegisterUserUseCase;
 import com.neoframe.neoframe_backend.modules.auth.core.ports.in.AuthUseCase; // Mantido caso use para reset de senha
+import com.neoframe.neoframe_backend.modules.auth.core.ports.out.JwtTokenPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -23,15 +24,18 @@ public class AuthController {
     private final LoginUserUseCase loginUserUseCase;
     private final LoginWithGoogleUseCase loginWithGoogleUseCase;
     private final AuthUseCase authUseCase; // Injetado para gerenciar o ciclo de vida de senhas
+    private final JwtTokenPort jwtTokenPort;
 
     public AuthController(RegisterUserUseCase registerUserUseCase,
                           LoginUserUseCase loginUserUseCase,
                           LoginWithGoogleUseCase loginWithGoogleUseCase,
-                          AuthUseCase authUseCase) {
+                          AuthUseCase authUseCase,
+                          JwtTokenPort jwtTokenPort) { // <--- Injetado aqui
         this.registerUserUseCase = registerUserUseCase;
         this.loginUserUseCase = loginUserUseCase;
         this.loginWithGoogleUseCase = loginWithGoogleUseCase;
         this.authUseCase = authUseCase;
+        this.jwtTokenPort = jwtTokenPort;
     }
 
     /**
@@ -41,14 +45,26 @@ public class AuthController {
     public ResponseEntity<RegisterResponse> register(@RequestBody RegisterRequest request) {
         log.info("Starting registration process for email: {}", request.email());
 
-        // Se o seu RegisterUserUseCase receber apenas email e password, passe eles.
-        // Se receber o plano, use: request.plan()
         UUID userId = registerUserUseCase.execute(request.email(), request.password());
+
+        // Como o generateAuthToken precisa de um objeto User, criamos um mock rápido com os dados gerados
+        com.neoframe.neoframe_backend.modules.auth.core.domain.User userMock =
+                new com.neoframe.neoframe_backend.modules.auth.core.domain.User(
+                        userId,
+                        request.email(),
+                        "", // Senha não importa para o token
+                        com.neoframe.neoframe_backend.modules.auth.core.domain.Plan.STARTER,
+                        java.time.LocalDateTime.now()
+                );
+
+        // Gera o token de acesso para o usuário recém-criado
+        String jwtToken = jwtTokenPort.generateAuthToken(userMock);
 
         RegisterResponse response = new RegisterResponse(
                 userId,
                 request.email(),
                 request.plan() != null ? request.plan() : "STARTER",
+                jwtToken, // <--- O token agora vai aqui!
                 "Usuário registrado com sucesso!"
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -115,4 +131,4 @@ record GoogleLoginRequest(String idToken) {}
 record ForgotPasswordRequest(String email) {}
 record ResetPasswordRequest(String token, String newPassword) {}
 record LoginResponse(String token, String message) {}
-record RegisterResponse(UUID userId, String email, String plan, String message) {}
+record RegisterResponse(UUID userId, String email, String plan, String token, String message) {}
