@@ -57,6 +57,11 @@ public class VideoJob {
         this.status = VideoStatus.PROCESSING;
     }
 
+    public void readyForCuration(String jsonUrl) {
+        this.status = VideoStatus.WAITING_CURATION;
+        this.videoUrl = jsonUrl;
+    }
+
     public void complete(String finalVideoUrl) {
         this.status = VideoStatus.COMPLETED;
         this.videoUrl = finalVideoUrl;

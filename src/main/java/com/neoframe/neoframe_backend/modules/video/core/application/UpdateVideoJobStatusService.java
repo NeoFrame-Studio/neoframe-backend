@@ -39,7 +39,8 @@ public class UpdateVideoJobStatusService implements UpdateVideoJobStatusUseCase 
         // 3. Usa os métodos de comportamento do seu Domínio (Rich Domain)
         switch (newStatus) {
             case PROCESSING -> job.startProcessing();
-            case COMPLETED -> job.complete(videoUrl); // O domínio já salva a URL e a data de conclusão lá dentro!
+            case WAITING_CURATION -> job.readyForCuration(videoUrl);
+            case COMPLETED -> job.complete(videoUrl);
             case FAILED -> job.fail();
             case PENDING -> log.info("Job [{}] is already pending.", jobId);
         }
