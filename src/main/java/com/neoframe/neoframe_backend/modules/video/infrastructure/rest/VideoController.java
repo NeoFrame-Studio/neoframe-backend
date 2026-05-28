@@ -1,7 +1,9 @@
 package com.neoframe.neoframe_backend.modules.video.infrastructure.rest;
 
+import com.neoframe.neoframe_backend.modules.video.core.domain.VideoJob;
 import com.neoframe.neoframe_backend.modules.video.core.ports.in.GenerateVideoUseCase;
 import com.neoframe.neoframe_backend.modules.video.core.ports.in.UpdateVideoJobStatusUseCase;
+import com.neoframe.neoframe_backend.modules.video.core.ports.out.VideoJobRepositoryPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,20 +24,20 @@ public class VideoController {
     private final GenerateVideoUseCase generateVideoUseCase;
     private final UpdateVideoJobStatusUseCase updateVideoJobStatusUseCase;
 
-    // Chave secreta de comunicação segura com o Worker Python (Hugging Face)
+    // 1. ADICIONADO: Repositório para poder buscar o status do vídeo no GET
+    private final VideoJobRepositoryPort videoJobRepository;
+
     @Value("${app.internal.api-key}")
     private String internalApiKey;
 
     public VideoController(GenerateVideoUseCase generateVideoUseCase,
-                           UpdateVideoJobStatusUseCase updateVideoJobStatusUseCase) {
+                           UpdateVideoJobStatusUseCase updateVideoJobStatusUseCase,
+                           VideoJobRepositoryPort videoJobRepository) {
         this.generateVideoUseCase = generateVideoUseCase;
         this.updateVideoJobStatusUseCase = updateVideoJobStatusUseCase;
+        this.videoJobRepository = videoJobRepository;
     }
 
-    /**
-     * Rota usada pelo Frontend React para solicitar a geração de um vídeo.
-     * Mapeia os dados informados (incluindo opcionais do plano Starter se houver) e põe na fila.
-     */
     @PostMapping("/jobs")
     public ResponseEntity<VideoJobResponse> createVideoJob(
             @AuthenticationPrincipal String authenticatedUserId,
@@ -44,7 +46,6 @@ public class VideoController {
         UUID userId = UUID.fromString(authenticatedUserId);
         log.info("User [{}] requested video generation with clean JSON.", userId);
 
-        // O Spring já resolveu o JSON, é só acessar os métodos do record
         UUID jobId = generateVideoUseCase.execute(
                 userId,
                 request.caminhos().roteiro(),
@@ -57,15 +58,36 @@ public class VideoController {
         return ResponseEntity.accepted().body(new VideoJobResponse(jobId, "Job successfully added to queue."));
     }
 
-    /**
-     * Rota de Callback protegida usada exclusivamente pelo Worker Python para atualizar o status do processamento.
-     */
+    // 2. ADICIONADO: O Endpoint de Polling que o Frontend (React) fica chamando
+    @GetMapping("/{jobId}")
+    public ResponseEntity<VideoJobResponseDTO> getStatus(@PathVariable UUID jobId) {
+        VideoJob job = videoJobRepository.findById(jobId)
+                .orElseThrow(() -> new IllegalArgumentException("Job não encontrado: " + jobId));
+
+        // Substituí o job.getProgress() por 0 diretamente
+        VideoJobResponseDTO response = new VideoJobResponseDTO(
+                job.getStatus().name(),
+                0,
+                job.getVideoUrl()
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{jobId}/finalize")
+    public ResponseEntity<Void> finalizeCuration(
+            @PathVariable UUID jobId,
+            @RequestBody FinalizeCurationRequest request) {
+
+        log.info("Recebido finalize para o job {} com {} urls", jobId, request.getUrlsEscolhidas().size());
+        return ResponseEntity.ok().build();
+    }
+
     @PostMapping("/internal/callback")
     public ResponseEntity<Void> workerCallback(
             @RequestHeader("X-Internal-Key") String incomingKey,
             @RequestBody WorkerCallbackRequest request) {
 
-        // Validação de segurança: barra a requisição se o token do cabeçalho não bater com a aplicação
         if (!internalApiKey.equals(incomingKey)) {
             log.warn("Unauthorized access attempt to internal callback endpoint. Bad API Key.");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -73,19 +95,17 @@ public class VideoController {
 
         log.info("Callback received from Python worker for job [{}]. Status: {}", request.jobId(), request.status());
 
-        // Atualiza o estado da entidade no banco via UseCase
         updateVideoJobStatusUseCase.execute(request.jobId(), request.status(), request.videoUrl());
 
         return ResponseEntity.ok().build();
     }
 
-    /**
-     * Captura exceções de validação de plano ou regras de negócio estouradas no Core
-     * e devolve uma resposta amigável estruturada em formato JSON para o seu frontend.
-     */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, String>> handleRulesException(IllegalArgumentException ex) {
         log.warn("Business rule violation caught in Controller: {}", ex.getMessage());
         return ResponseEntity.badRequest().body(Map.of("error", ex.getMessage()));
     }
+
+    // 3. ADICIONADO: O formato de resposta (JSON) que o frontend espera receber no polling
+    public record VideoJobResponseDTO(String status, int progress, String outputUrl) {}
 }
