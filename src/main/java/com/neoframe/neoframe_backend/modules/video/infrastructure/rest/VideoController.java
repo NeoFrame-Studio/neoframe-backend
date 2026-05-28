@@ -1,6 +1,7 @@
 package com.neoframe.neoframe_backend.modules.video.infrastructure.rest;
 
 import com.neoframe.neoframe_backend.modules.video.core.domain.VideoJob;
+import com.neoframe.neoframe_backend.modules.video.core.ports.in.FinalizeVideoUseCase;
 import com.neoframe.neoframe_backend.modules.video.core.ports.in.GenerateVideoUseCase;
 import com.neoframe.neoframe_backend.modules.video.core.ports.in.UpdateVideoJobStatusUseCase;
 import com.neoframe.neoframe_backend.modules.video.core.ports.out.VideoJobRepositoryPort;
@@ -23,8 +24,8 @@ public class VideoController {
 
     private final GenerateVideoUseCase generateVideoUseCase;
     private final UpdateVideoJobStatusUseCase updateVideoJobStatusUseCase;
+    private final FinalizeVideoUseCase finalizeVideoUseCase; // Adicione isso
 
-    // 1. ADICIONADO: Repositório para poder buscar o status do vídeo no GET
     private final VideoJobRepositoryPort videoJobRepository;
 
     @Value("${app.internal.api-key}")
@@ -32,10 +33,12 @@ public class VideoController {
 
     public VideoController(GenerateVideoUseCase generateVideoUseCase,
                            UpdateVideoJobStatusUseCase updateVideoJobStatusUseCase,
-                           VideoJobRepositoryPort videoJobRepository) {
+                           VideoJobRepositoryPort videoJobRepository,
+                           FinalizeVideoUseCase finalizeVideoUseCase) { // <--- AQUI
         this.generateVideoUseCase = generateVideoUseCase;
         this.updateVideoJobStatusUseCase = updateVideoJobStatusUseCase;
         this.videoJobRepository = videoJobRepository;
+        this.finalizeVideoUseCase = finalizeVideoUseCase; // <--- AQUI
     }
 
     @PostMapping("/jobs")
@@ -80,6 +83,10 @@ public class VideoController {
             @RequestBody FinalizeCurationRequest request) {
 
         log.info("Recebido finalize para o job {} com {} urls", jobId, request.getUrlsEscolhidas().size());
+
+        // Chama o caso de uso de forma atômica
+        finalizeVideoUseCase.execute(jobId, request.getUrlsEscolhidas());
+
         return ResponseEntity.ok().build();
     }
 

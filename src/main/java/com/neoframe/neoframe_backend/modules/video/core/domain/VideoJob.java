@@ -57,6 +57,13 @@ public class VideoJob {
         this.status = VideoStatus.PROCESSING;
     }
 
+    public void finalizeCuration() {
+        if (this.status != VideoStatus.WAITING_CURATION) {
+            throw new IllegalStateException("Job can only be finalized if it is WAITING_CURATION");
+        }
+        this.status = VideoStatus.PROCESSING;
+    }
+
     public void readyForCuration(String jsonUrl) {
         this.status = VideoStatus.WAITING_CURATION;
         this.videoUrl = jsonUrl;
