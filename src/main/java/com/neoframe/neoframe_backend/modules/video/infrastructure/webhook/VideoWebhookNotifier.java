@@ -22,6 +22,7 @@ public class VideoWebhookNotifier {
 
     private final RestTemplate restTemplate;
 
+    // Esta variável já aponta para o seu endpoint /process através do application.properties
     @Value("${app.worker.python-url}")
     private String pythonWorkerUrl;
 
@@ -48,7 +49,7 @@ public class VideoWebhookNotifier {
             headers.setContentType(MediaType.APPLICATION_JSON);
             HttpEntity<VideoJobCreatedEvent> requestEntity = new HttpEntity<>(event, headers);
 
-            // Supondo que a raiz da URL inicie a Parte A
+            // Bate na rota /process definida na sua variável de ambiente
             restTemplate.postForObject(pythonWorkerUrl, requestEntity, Void.class);
 
             log.info("Python worker successfully notified for job [{}].", event.jobId());
@@ -57,7 +58,7 @@ public class VideoWebhookNotifier {
         }
     }
 
-    // --- NOVO: LISTENER DA PARTE B (APÓS CURADORIA) ---
+    // --- LISTENER DA PARTE B (APÓS CURADORIA) ---
     @Async
     @EventListener
     public void onVideoJobCurated(VideoCurationFinalizedEvent event) {
@@ -69,12 +70,10 @@ public class VideoWebhookNotifier {
 
             HttpEntity<VideoCurationFinalizedEvent> requestEntity = new HttpEntity<>(event, headers);
 
-            // IMPORTANTE: Adicionei o sufixo "/finalize" (ou "/render", ou o que você usou no Python)
-            // para que a sua API em Python saiba diferenciar a Parte A da Parte B.
-            // Se o Python trata na mesma rota (apenas checando status), você pode manter só o pythonWorkerUrl
-            String pythonRenderUrl = pythonWorkerUrl + "/jobs";
-
-            restTemplate.postForObject(pythonRenderUrl, requestEntity, Void.class);
+            // AQUI ESTÁ A CORREÇÃO:
+            // Removemos o "/jobs" ou "/finalize". Usamos a URL pura configurada
+            // no seu properties, que já é o endpoint /process.
+            restTemplate.postForObject(pythonWorkerUrl, requestEntity, Void.class);
 
             log.info("Python worker successfully notified to start RENDER for job [{}].", event.jobId());
         } catch (Exception e) {
