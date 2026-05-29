@@ -1,12 +1,8 @@
 package com.neoframe.neoframe_backend.modules.auth.core.ports.in;
 
-import java.util.UUID;
+import com.neoframe.neoframe_backend.modules.auth.core.domain.User;
 
 public interface RegisterUserUseCase {
-    /**
-     * Registra um novo usuário no sistema com a senha criptografada e plano inicial.
-     *
-     * @return O ID único do usuário recém-criado
-     */
-    UUID execute(String email, String rawPassword);
+    // Mudou de UUID para User
+    User execute(String email, String password);
 }

@@ -20,6 +20,7 @@ public class RegisterUserService implements RegisterUserUseCase {
     private final UserRepositoryPort userRepository;
     private final PasswordEncoder passwordEncoder;
 
+
     // Injeção de dependências via construtor
     public RegisterUserService(UserRepositoryPort userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
@@ -27,7 +28,7 @@ public class RegisterUserService implements RegisterUserUseCase {
     }
 
     @Override
-    public UUID execute(String email, String rawPassword) {
+    public User execute(String email, String password) {
         log.info("Attempting to register a new user with email: {}", email);
 
         // 1. Validação de duplicidade
@@ -37,22 +38,16 @@ public class RegisterUserService implements RegisterUserUseCase {
         }
 
         // 2. Criptografia da senha (BCrypt gera um hash seguro e irreversível)
-        String encodedPassword = passwordEncoder.encode(rawPassword);
-
         // 3. Criação da entidade de usuário com o plano padrão de entrada (STARTER)
         User newUser = new User(
                 UUID.randomUUID(),
                 email,
-                encodedPassword,
+                passwordEncoder.encode(password),
                 Plan.STARTER, // Todo usuário novo começa no plano de entrada
                 LocalDateTime.now()
         );
 
-        // 4. Salva no banco de dados através do adaptador
-        User savedUser = userRepository.save(newUser);
-
-        log.info("User [{}] successfully registered with STARTER plan.", savedUser.getId());
-
-        return savedUser.getId();
+        // Retorna o objeto completo que o banco de dados salvou
+        return userRepository.save(newUser);
     }
 }

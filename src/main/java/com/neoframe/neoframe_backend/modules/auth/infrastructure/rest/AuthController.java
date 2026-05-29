@@ -45,26 +45,18 @@ public class AuthController {
     public ResponseEntity<RegisterResponse> register(@RequestBody RegisterRequest request) {
         log.info("Starting registration process for email: {}", request.email());
 
-        UUID userId = registerUserUseCase.execute(request.email(), request.password());
+        // 1. Recebe o User real do domínio, direto do banco
+        com.neoframe.neoframe_backend.modules.auth.core.domain.User user =
+                registerUserUseCase.execute(request.email(), request.password());
 
-        // Como o generateAuthToken precisa de um objeto User, criamos um mock rápido com os dados gerados
-        com.neoframe.neoframe_backend.modules.auth.core.domain.User userMock =
-                new com.neoframe.neoframe_backend.modules.auth.core.domain.User(
-                        userId,
-                        request.email(),
-                        "", // Senha não importa para o token
-                        com.neoframe.neoframe_backend.modules.auth.core.domain.Plan.STARTER,
-                        java.time.LocalDateTime.now()
-                );
-
-        // Gera o token de acesso para o usuário recém-criado
-        String jwtToken = jwtTokenPort.generateAuthToken(userMock);
+        // 2. Passa o user real e completo para gerar o token sem riscos de segurança
+        String jwtToken = jwtTokenPort.generateAuthToken(user);
 
         RegisterResponse response = new RegisterResponse(
-                userId,
-                request.email(),
-                request.plan() != null ? request.plan() : "STARTER",
-                jwtToken, // <--- O token agora vai aqui!
+                user.getId(), // Pega o ID direto do user real
+                user.getEmail(),
+                user.getPlan() != null ? user.getPlan().toString() : "STARTER",
+                jwtToken,
                 "Usuário registrado com sucesso!"
         );
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
