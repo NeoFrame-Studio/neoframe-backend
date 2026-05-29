@@ -86,7 +86,7 @@ public class AuthController {
     @PostMapping("/google")
     public ResponseEntity<LoginResponse> loginWithGoogle(@RequestBody GoogleLoginRequest request) {
         log.info("Google OAuth login initialization attempt.");
-        String jwtToken = loginWithGoogleUseCase.execute(request.idToken());
+        String jwtToken = loginWithGoogleUseCase.execute(request.token());
         return ResponseEntity.ok(new LoginResponse(jwtToken, "Autenticação via Google efetuada com sucesso."));
     }
 
@@ -127,7 +127,7 @@ public class AuthController {
 // =========================================================================
 record RegisterRequest(String email, String password, String plan) {}
 record LoginRequest(String email, String password) {}
-record GoogleLoginRequest(String idToken) {}
+record GoogleLoginRequest(String token) {}
 record ForgotPasswordRequest(String email) {}
 record ResetPasswordRequest(String token, String newPassword) {}
 record LoginResponse(String token, String message) {}
