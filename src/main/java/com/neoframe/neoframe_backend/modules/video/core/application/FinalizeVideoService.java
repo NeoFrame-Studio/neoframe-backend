@@ -1,6 +1,7 @@
 package com.neoframe.neoframe_backend.modules.video.core.application;
 
 import com.neoframe.neoframe_backend.modules.video.core.domain.VideoJob;
+import com.neoframe.neoframe_backend.modules.video.core.events.PathsPayload;
 import com.neoframe.neoframe_backend.modules.video.core.events.VideoCurationFinalizedEvent;
 import com.neoframe.neoframe_backend.modules.video.core.ports.in.FinalizeVideoUseCase;
 import com.neoframe.neoframe_backend.modules.video.core.ports.out.VideoJobRepositoryPort;
@@ -44,8 +45,22 @@ public class FinalizeVideoService implements FinalizeVideoUseCase {
         videoJobRepository.save(job);
         log.info("Job [{}] salvo com sucesso no banco com o novo status: PROCESSING.", jobId);
 
-        // 4. Dispara o evento para o listener de infraestrutura chamar o Python em background
+        // 4. Monta o payload de caminhos aproveitando os dados que já estão no banco
+        PathsPayload caminhos = new PathsPayload(
+                job.getScript(),
+                job.getIntroVideoUrl(),
+                job.getTopicTransitionUrl(),
+                job.getBackgroundMusicUrl()
+        );
+
+        // 5. Dispara o evento para o listener de infraestrutura chamar o Python em background
         log.info("Disparando evento de curadoria finalizada para o Job [{}]", jobId);
-        eventPublisher.publishEvent(new VideoCurationFinalizedEvent(jobId, urlsEscolhidas));
+
+        eventPublisher.publishEvent(new VideoCurationFinalizedEvent(
+                jobId,
+                job.getStatus().name(), // Envia o status atualizado
+                caminhos,               // Envia o payload com os 4 arquivos
+                urlsEscolhidas          // Envia as URLs curadas
+        ));
     }
 }
