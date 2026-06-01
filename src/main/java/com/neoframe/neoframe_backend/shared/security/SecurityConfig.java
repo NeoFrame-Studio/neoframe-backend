@@ -24,7 +24,9 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthFilter;
 
     // Busca a URL do frontend no Railway. Se não achar, usa o localhost do Vite.
-    @Value("${FRONTEND_API_URL:http://localhost:5173}")
+    //@Value("${FRONTEND_API_URL:http://localhost:5173}")
+
+    @Value("${FRONTEND_API_URL_DNS_APP:http://localhost:5173}")
     private String frontendUrl;
 
     // Busca a URL do Python no Railway. Se não achar, usa um localhost padrão.
